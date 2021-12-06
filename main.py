@@ -20,12 +20,13 @@ VERSION = "1.0.0"
 # Parser Command Line Arguments
 parser = argparse.ArgumentParser(description="Entropy Vision")
 parser.add_argument('--version', action='version', version="Entropy Vision " + VERSION)
-parser.add_argument('--foo', help='foo help')
 parser.add_argument('--targetIP', help='Target IP to Connect', default="10.1.38.2")
 parser.add_argument('--targetPort', help='Target Port to Connect', default=8000)
 parser.add_argument("--directory", help="Selected Directory", default="")
 parser.add_argument("--file", help="Selected File", default="")
 parser.add_argument("--outputDirectory", help="Output Directory", default="")
+parser.add_argument("-profile", help="Profiles Timing of Execuation", action='store_true', default=False)
+parser.add_argument("-outputImages", help="Outputs Images of Processed Frame", action='store_true', default=False)
 parser.add_argument('-targetTrack', help='Enable Target Tracking Mode', action='store_true', default=False)
 parser.add_argument('-objectDetect', help='Enable Object Detection Mode', action='store_true', default=False)
 parser.add_argument('-backtest', help='Backtests TargetTracking/Object Detection', action='store_true', default=False)
@@ -71,11 +72,19 @@ if __name__ == '__main__':
         pass 
 
     # Start Tracking Algorithms 
+    # Also set needed information
     for algo in TrackingAlgorithms:
+        algo.setCameraInfo(CamInfo)
+        algo.setOutputImages(args.outputImages)
+        algo.setOutputDirectory(args.outputDirectory)
         algo.start()
 
     # Start Object Detection Algorithms
+    # Also set needed information
     for algo in ObjectDetectionAlgorithms:
+        algo.setCameraInfo(CamInfo)
+        algo.setOutputImages(args.outputImages)
+        algo.setOutputDirectory(args.outputDirectory)
         algo.start()
 
     # Start Sender if needed
@@ -85,13 +94,10 @@ if __name__ == '__main__':
     Sender.start()
 
     # Set Sender References in Algorithms
-    # Set Camera Info into Algorithms
     for algo in TrackingAlgorithms:
         algo.setSenderReference(Sender)
-        algo.setCameraInfo(CamInfo)
     for algo in ObjectDetectionAlgorithms:
         algo.setSenderReference(Sender)
-        algo.setCameraInfo(CamInfo)
 
 
 
@@ -100,7 +106,7 @@ if __name__ == '__main__':
     print("test code time")
 
 
-    imagepath = "E:\\Robo\\EntopyVision\\samples"
+    imagepath = "E:\\Robo\\EntopyVision\\samples\\02-01-2020_02-41-50"
     imagePaths = getAllImagePaths(imagepath)
     print(imagePaths)
 

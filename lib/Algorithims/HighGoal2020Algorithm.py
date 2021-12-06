@@ -15,6 +15,25 @@ class HighGoal2020Algorithm(TrackingAlgorithm):
         self.hsv_threshold_saturation = [71, 255]
         self.hsv_threshold_value = [39, 255]
 
+        # Contour Constraints
+        self.minArea = 10
+        self.minWidth = 20
+        self.maxWidth = 1000
+        self.minHeight = 20
+        self.maxHeight = 60
+        self.maxVertices = 100
+        self.minVertices = 30
+
+        # ratio values
+        # these values are used to avoid detecting feeder station
+        self.rat_low = 1.5
+        self.rat_high= 5
+
+        # Solidity compares the hull vs contour and looks at the difference in filled area
+        # Works on a system of %
+        self.solidity_low = .1
+        self.solidity_high = .3
+
     # Masks the video based on a range of hsv colors 
     # Takes in a frame, range of color, and a blured frame
     # returns a masked frame
@@ -70,7 +89,6 @@ class HighGoal2020Algorithm(TrackingAlgorithm):
                 perimeter = cv2.arcLength(cnt, True)
                 approxCurve = cv2.approxPolyDP(cnt, perimeter * .01, True)
                 
-
                 if cntArea != 0 and hullArea != 0:
                     mySolidity = float (cntArea)/hullArea
                 else:
@@ -78,26 +96,27 @@ class HighGoal2020Algorithm(TrackingAlgorithm):
 
                 x, y, w, h = cv2.boundingRect(cnt)
                 ratio = float(w) / h
+
+                # valid checks
+                approxCurveValid = (len(approxCurve) >= 8)
+                minAreaValid = (cntArea > self.minArea)
+                solidityValid = (mySolidity > self.solidity_low) and (mySolidity < self.solidity_high)
+                widthValid = (x > self.minWidth) and (x < self.maxWidth)
+                heightValid = (y > self.minHeight)                
+
                 # Filters contours based off of size
-                if len(approxCurve) >= 8 and (cntArea > minArea) and (mySolidity > solidity_low) and (mySolidity < solidity_high) and (x > minWidth) and (x < maxWidth) and (y > minHeight) and (checkContours(cntArea, hullArea, ratio, cnt)):
+                if approxCurveValid and minAreaValid and solidityValid and widthValid and heightValid and (self.checkContours(cntArea, hullArea, ratio, cnt)):
                     # Next three lines are for debugging the contouring
                     contimage = cv2.drawContours(image, cnt, -1, (0, 255, 0), 3)
                     
                     ### MOSTLY DRAWING CODE, BUT CALCULATES IMPORTANT INFO ###
                     # Gets the centeroids of contour
                     if M["m00"] != 0:
+                        print("Got Target?!?!")
                         cx = int(M["m10"] / M["m00"])
                         cy = int(M["m01"] / M["m00"])
                         distCY = 540 - cy
-                        myDistFeet = (calculateDistanceFeet(w))
-
-                        ###### New code that has an averaged shooting distance to avoid outliers
-
-                        #global run_count
-                        global distanceHoldValues
-                        global shootingDistance
-                        global outlierCount
-                        global run_count
+                        myDistFeet = (self.calculateDistanceFeet(w))
 
                         sendValues[0] = cx
                         sendValues[1] = cy
@@ -107,7 +126,7 @@ class HighGoal2020Algorithm(TrackingAlgorithm):
                         cx, cy = 0, 0
                     if (len(biggestCnts) < 13):
                         #### CALCULATES ROTATION OF CONTOUR BY FITTING ELLIPSE ##########
-                        rotation = getEllipseRotation(image, cnt)
+                        rotation = self.getEllipseRotation(image, cnt)
 
                         # Appends important info to array
                         if not biggestCnts:
@@ -171,21 +190,78 @@ class HighGoal2020Algorithm(TrackingAlgorithm):
         
         return sendValues
 
+        # Checks if tape contours are worthy based off of contour area and (not currently) hull area
+    def checkContours(self, cntSize, hullSize, aspRatio, contour):
+        return cntSize > (self.CameraInfo.CameraWidth / 6) and (len(contour) > self.minVertices) and (len(contour) < self.maxVertices) and not (aspRatio < self.rat_low or aspRatio > self.rat_high)
+
+    def calculateDistanceFeet(self, targetPixelWidth):
+        camPixelWidth = 640
+        # target reflective tape width in feet (3 feet, 3 & 1/4 inch) ~3.27
+        Tft = 3.27
+
+        # theta = 1/2 FOV,
+        tanFOV = math.tan(self.CameraInfo.FOV / 2)
+
+        # d = Tft*FOVpixel/(2*Tpixel*tanΘ)
+        #Target width in feet * 
+        distEst = Tft * camPixelWidth / (2 * targetPixelWidth * tanFOV)
+        
+        # Unsure as to what measurement distEst is producing in the above line, but multiplying it by .32 will return your distance in feet
+        distEstFeet = distEst * .32
+        #distEstInches = distEstFeet *.32*12
+        return (distEstFeet)
+
+    def getEllipseRotation(self, image, cnt):
+        try:
+            # Gets rotated bounding ellipse of contour
+            ellipse = cv2.fitEllipse(cnt)
+            centerE = ellipse[0]
+            # Gets rotation of ellipse; same as rotation of contour
+            rotation = ellipse[2]
+            # Gets width and height of rotated ellipse
+            widthE = ellipse[1][0]
+            heightE = ellipse[1][1]
+            # Maps rotation to (-90 to 90). Makes it easier to tell direction of slant
+            rotation = self.translateRotation(rotation, widthE, heightE)
+
+            cv2.ellipse(image, ellipse, (23, 184, 80), 3)
+            return rotation
+        except:
+            # Gets rotated bounding rectangle of contour
+            rect = cv2.minAreaRect(cnt)
+            # Creates box around that rectangle
+            box = cv2.boxPoints(rect)
+            # Not exactly sure
+            box = np.int0(box)
+            # Gets center of rotated rectangle
+            center = rect[0]
+            # Gets rotation of rectangle; same as rotation of contour
+            rotation = rect[2]
+            # Gets width and height of rotated rectangle
+            width = rect[1][0]
+            height = rect[1][1]
+            # Maps rotation to (-90 to 90). Makes it easier to tell direction of slant
+            rotation = self.translateRotation(rotation, width, height)
+            return rotation
+
+    def translateRotation(self, rotation, width, height):
+        if (width < height):
+            rotation = -1 * (rotation - 90)
+        if (rotation > 90):
+            rotation = -1 * (rotation - 180)
+        rotation *= -1
+        return round(rotation)
+
+
     # Process Frame and Indentify Targets
     def processFrame(self, frame):
         threshold = self.threshold_video(self.hsv_threshold_hue, 
             self.hsv_threshold_saturation, self.hsv_threshold_value, frame)
 
         rect1 = cv2.rectangle(frame, (0, 300), (640, 480), (0,0,0), -1)
-
-        Camera_Image_Width = 640
-        Camera_Image_Height = 480
-
-        centerX = (Camera_Image_Width / 2) - .5
-        centerY = (Camera_Image_Height/2) - .5
-
         vals_to_send = np.array([None] * 4)
-        processedValues = self.findTargets(rect1, threshold, vals_to_send, centerX, centerY)
+        processedValues = self.findTargets(rect1, threshold, vals_to_send, self.CameraInfo.CenterX, self.CameraInfo.CenterY)
+
 
 
         

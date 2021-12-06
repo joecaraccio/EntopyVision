@@ -1,5 +1,6 @@
 # Target Sender interfaces to a Client Server
 from multiprocessing import Process, Queue
+import socket 
 
 class TargetSender(Process):
 

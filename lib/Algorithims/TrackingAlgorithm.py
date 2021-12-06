@@ -13,6 +13,8 @@ class TrackingAlgorithm(Process):
         self.SenderReference = None 
         self.ProcessQueue = False
         self.CameraInfo = None 
+        self.OutputImages = False
+        self.OutputDirectory = ""
 
     # returns algorithm name
     def getAlgorithmName(self):
@@ -26,11 +28,22 @@ class TrackingAlgorithm(Process):
     def setVerboseMode(self, mode):
         self.VerboseMode = mode 
 
+    def setOutputImages(self, outputImages):
+        self.OutputImages = outputImages
+
+    def setOutputDirectory(self, outputDirectory):
+        self.OutputDirectory = outputDirectory
+
     def isRunning(self):
         return self.Running
 
     def setCameraInfo(self, camInfo):
+        print("setCameraInfo " )
+        print(camInfo)
         self.CameraInfo = camInfo
+
+    def hasCameraInfo(self):
+        return not (self.CameraInfo == None)
 
     # pushes a target into the multiprocessing queue
     def publishTarget(self):
@@ -78,6 +91,10 @@ class TrackingAlgorithm(Process):
     # for example: a 30 fps camera would have 30 frames to process every second
     def processFrame(frame):
         print("Unimplimented Frame")
+
+
+    # writeImageSaveMetaData
+    
 
 
     #def backtestDirectory(directoryPath):
