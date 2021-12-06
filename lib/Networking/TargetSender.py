@@ -8,11 +8,37 @@ class TargetSender(Process):
         super().__init__()
 
         # Algorithms to subscribe to
-        self.Algorithms = []
+        self.TrackingAlgorithms = []
+        self.ObjectDetect = []
 
-    def subscribeToAlgorith(self, algo):
-        self.Algorithms.append(algo)
+        # connection information
+        self.TargetIP = ""
+        self.TargetPort = 0
+
+    def setTargetIP(self, ip):
+        self.TargetIP = str(ip)
+
+    def setTargetPort(self, port):
+        self.TargetPort = int(port)
+
+    def subscribeToTrackingAlgorithm(self, algo):
+        self.TrackingAlgorithms.append(algo)
+
+    #
+    def addTrackingAlgorithms(self, algos):
+        for i in range(len(algos)):
+            self.subscribeToTrackingAlgorithm(algos[i])
+
+    def launchTrackingAlgorithms(self):
+        for algo in self.TrackingAlgorithms:
+            algo.start()
 
     # Run Method
     def run(self):
-        pass
+        print("Start Target Sender!")
+
+        # Connect to Target Server
+        print("Connecting to " + str(self.TargetIP) + ":" + str(self.TargetPort))
+
+
+        
