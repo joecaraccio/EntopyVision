@@ -6,7 +6,7 @@ import cv2
 def getAllImagePaths(path):
     result = []
     for filename in glob.glob(path + "/*.jpg"):
-        result.append(os.path.join(path, filename))
+        result.append(filename)
     return result
 
 def readImages(images):

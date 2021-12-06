@@ -38,6 +38,8 @@ if __name__ == '__main__':
     Sender = None 
     TrackingAlgorithms = []
     ObjectDetectionAlgorithms = []
+    BackTestMode = args.backtest
+    CalibrationMode = args.calibrate
 
     # Camera Configuration
     CamInfo = CameraInfo()
@@ -48,28 +50,12 @@ if __name__ == '__main__':
     CamInfo.FOV = 75
     CamInfo.performCalculations()
 
-    # Tracking Algorithms
+    # Tracking Algorithms (if applicable)
     TrackingAlgorithms.append(
         HighGoal2020Algorithm()
     )
 
-    if(args.backtest):
-        # backtest mode
-
-        pass
-
-    if(args.calibrate):
-        # calibration mode
-
-        pass 
-
-    if(args.objectDetect):
-        # Object Detection mode
-        pass
-    
-    if(args.targetTrack):
-        # Track Targets
-        pass 
+    # Object Dection (if applicable)
 
     # Start Tracking Algorithms 
     # Also set needed information
@@ -99,25 +85,22 @@ if __name__ == '__main__':
     for algo in ObjectDetectionAlgorithms:
         algo.setSenderReference(Sender)
 
+    # Initailization Sleep Delay
 
+    # Backtest Images against Algorithms and output result
+    if(BackTestMode):
+        imagepath = args.directory
+        imagePaths = getAllImagePaths(imagepath)
+        frames = readImages(imagePaths)
+        '''
+        for frame in frames:
 
-    # remove test code remove
-    time.sleep(1)
-    print("test code time")
-
-
-    imagepath = "E:\\Robo\\EntopyVision\\samples\\02-01-2020_02-41-50"
-    imagePaths = getAllImagePaths(imagepath)
-    print(imagePaths)
-
-    frames = readImages(imagePaths)
-    for frame in frames:
-
-        # feed frame into each algorithm
-        for algo in TrackingAlgorithms:
-            algo.addFrame(frame)
-        for algo in ObjectDetectionAlgorithms:
-            algo.addFrame(frame)
+            # feed frame into each algorithm
+            for algo in TrackingAlgorithms:
+                algo.addFrame(frame)
+            for algo in ObjectDetectionAlgorithms:
+                algo.addFrame(frame)
+        '''
     
 
         
@@ -125,17 +108,3 @@ if __name__ == '__main__':
         
 
 
-'''
-ha = HighGoal2020Algorithm("Algo")
-
-imagepath = "E:\\Robo\\EntopyVision\\samples"
-imagePaths = getAllImagePaths(imagepath)
-print(imagePaths)
-for path in imagePaths:
-    print(path)
-
-mats = readImages(imagePaths)
-for m in mats:
-    ha.processFrame(m)
-
-'''
