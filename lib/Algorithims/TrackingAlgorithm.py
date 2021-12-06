@@ -11,7 +11,8 @@ class TrackingAlgorithm(Process):
         self.Running = False
         self.FrameQueue = Queue()
         self.SenderReference = None 
-
+        self.ProcessQueue = False
+        self.CameraInfo = None 
 
     # returns algorithm name
     def getAlgorithmName(self):
@@ -28,6 +29,9 @@ class TrackingAlgorithm(Process):
     def isRunning(self):
         return self.Running
 
+    def setCameraInfo(self, camInfo):
+        self.CameraInfo = camInfo
+
     # pushes a target into the multiprocessing queue
     def publishTarget(self):
         pass
@@ -38,11 +42,22 @@ class TrackingAlgorithm(Process):
 
     # blocking method which constantly processes frame
     def processFrameQueue(self):
-        try:
-            frame = self.FrameQueue.get()
-            print("frame recied")         
-        except Exception as e1:
-            pass
+        while self.ProcessFrameQueue:
+            try:
+                # get frame from queue
+                frame = self.FrameQueue.get()
+
+                # process the frame
+                try:
+                    self.processFrame(frame)
+                except Exception as exept:
+                    # Exception on Process Frame
+                    print(
+                        self.getAlgorithmName() + "Algorithm" + "::" +
+                        "ProcessFrame::Exception: " + str(exept))
+
+            except Exception as e1:
+                pass
 
 
     # Add Frame to the Processing Queue
@@ -54,6 +69,7 @@ class TrackingAlgorithm(Process):
         print("Running " + str(self.AlgorithmName) + " Tracking Algorithim")
 
         # block and process frame queue
+        self.ProcessFrameQueue = True
         self.processFrameQueue()
 
 
@@ -61,7 +77,7 @@ class TrackingAlgorithm(Process):
     # a frame is each frame of the camera
     # for example: a 30 fps camera would have 30 frames to process every second
     def processFrame(frame):
-        print("base call")
+        print("Unimplimented Frame")
 
 
     #def backtestDirectory(directoryPath):
